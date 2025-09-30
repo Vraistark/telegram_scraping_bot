@@ -2,11 +2,14 @@ import re
 import requests
 from typing import List, Dict
 
+import os
+
 API_KEYS = [
-    "YOUR_YOUTUBE_API_KEY_1",
-    "YOUR_YOUTUBE_API_KEY_2",
-    # Add your API keys here
+    os.getenv("YOUR_YOUTUBE_API_KEY_1"),
+    os.getenv("YOUR_YOUTUBE_API_KEY_2"),
+    # Add more keys as needed
 ]
+
 
 current_key_index = 0
 
