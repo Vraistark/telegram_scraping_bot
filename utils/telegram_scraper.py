@@ -1,10 +1,14 @@
-import re
-from telethon import TelegramClient
+import os
+from telethon.sync import TelegramClient
 from telethon.errors import FloodWaitError, ChannelPrivateError
-import asyncio
+from telethon.tl.types import PeerChannel, DocumentAttributeAudio, MessageMediaDocument
+import time
+import csv
+import re
 
-api_id = YOUR_API_ID  # Replace with your Telegram API ID
-api_hash = 'YOUR_API_HASH'  # Replace with your Telegram API HASH
+api_id = int(os.getenv("TELEGRAM_API_ID"))
+api_hash = os.getenv("TELEGRAM_API_HASH")
+
 
 client = TelegramClient('session_name', api_id, api_hash)
 
