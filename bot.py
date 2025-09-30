@@ -2,6 +2,8 @@ import re
 import csv
 import io
 import logging
+import os
+
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, filters,
@@ -75,42 +77,59 @@ async def url_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     results = []
     if platform == 'YouTube':
+        # Assuming fetch_youtube_data is synchronous, if async, add await
         results = fetch_youtube_data(valid_urls)
     elif platform in ('TelegramPublic', 'TelegramPrivate'):
         results = await scrape_telegram_channel(valid_urls)
     elif platform == 'Dailymotion':
+        # Assuming fetch_dailymotion_data is synchronous, if async, add await
         results = fetch_dailymotion_data(valid_urls)
     elif platform == 'Okru':
+        # Assuming fetch_okru_data is synchronous, if async, add await
         results = fetch_okru_data(valid_urls)
     else:
         await update.message.reply_text("Unsupported platform.")
         return
 
-    # Create CSV in memory
-    output = io.StringIO()
-    if results:
-        headers = results[0].keys()
-        writer = csv.DictWriter(output, fieldnames=headers)
-        writer.writeheader()
-        writer.writerows(results)
-    else:
+    if not results:
         await update.message.reply_text("No data was scraped from the provided URLs.")
         return
 
+    # Create CSV in memory
+    output = io.StringIO()
+    headers = results[0].keys()
+    writer = csv.DictWriter(output, fieldnames=headers)
+    writer.writeheader()
+    writer.writerows(results)
     output.seek(0)
+
     await update.message.reply_document(document=output, filename=f"{platform}_data.csv")
 
+
 def main():
-    import os
     TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+    PORT = int(os.getenv('PORT', 8443))
+    APP_URL = os.getenv('APP_URL')  # e.g. https://your-render-url.onrender.com
+
+    if not TOKEN or not APP_URL:
+        logger.error("Missing TELEGRAM_BOT_TOKEN or APP_URL environment variables.")
+        return
+
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, url_handler))
 
-    print("Bot is running...")
-    app.run_polling()
+    logger.info("Bot is starting with webhook...")
+
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path=TOKEN,
+        webhook_url=f"{APP_URL}/{TOKEN}"
+    )
+
 
 if __name__ == '__main__':
     main()
