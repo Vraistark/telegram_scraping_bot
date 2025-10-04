@@ -3,11 +3,13 @@ import csv
 import io
 import logging
 import os
+import threading
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, filters,
     ContextTypes, CallbackQueryHandler
 )
+from flask import Flask
 
 from utils.youtube import fetch_youtube_data
 from utils.telegram_scraper import scrape_telegram_channel
@@ -101,7 +103,7 @@ async def url_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_document(document=output, filename=f"{platform}_data.csv")
 
-def main():
+def run_bot():
     TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
     if not TOKEN:
         logger.error("Missing TELEGRAM_BOT_TOKEN environment variable.")
@@ -116,5 +118,19 @@ def main():
     logger.info("Starting bot with polling...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Telegram Scraping Bot is running!"
+
+def run_webserver():
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
+
 if __name__ == "__main__":
-    main()
+    # Run webserver in a separate thread to satisfy Render's port check
+    import threading
+    threading.Thread(target=run_webserver).start()
+    # Run Telegram bot polling
+    run_bot()
