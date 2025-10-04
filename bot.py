@@ -4,7 +4,7 @@ import io
 import logging
 import os
 import threading
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Bot
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, filters,
     ContextTypes, CallbackQueryHandler
@@ -109,8 +109,10 @@ def run_bot():
         logger.error("Missing TELEGRAM_BOT_TOKEN environment variable.")
         return
 
-    app = ApplicationBuilder().token(TOKEN).build()
+    bot = Bot(token=TOKEN)
+    bot.delete_webhook()  # Delete webhook to prevent polling conflict
 
+    app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, url_handler))
@@ -129,8 +131,5 @@ def run_webserver():
     app.run(host='0.0.0.0', port=port)
 
 if __name__ == "__main__":
-    # Run webserver in a separate thread to satisfy Render's port check
-    import threading
     threading.Thread(target=run_webserver).start()
-    # Run Telegram bot polling
     run_bot()
